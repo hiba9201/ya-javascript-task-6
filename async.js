@@ -15,6 +15,10 @@ const isStar = true;
  * @returns {Promise<Array>}
  */
 function runParallel(jobs, parallelNum, timeout = 1000) {
+    if (jobs.length === 0) {
+        return new Promise(resolve => resolve([]));
+    }
+
     const result = [];
     let currentJob = 0;
     const initLen = jobs.length;
