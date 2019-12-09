@@ -16,29 +16,32 @@ const isStar = true;
  */
 function runParallel(jobs, parallelNum, timeout = 1000) {
     if (jobs.length === 0) {
-        return new Promise(resolve => resolve([]));
+        return Promise.resolve(jobs);
     }
 
-    const result = [];
+    const result = new Array(jobs.length);
     let currentJob = 0;
-    const initLen = jobs.length;
     const startJobs = jobs.splice(0, parallelNum);
 
+    const processJob = function (resolve, res, index) {
+        result[index] = res;
+        if (!hasEmptySlot(result)) {
+            resolve(result);
+        }
+    };
+
     const runOnePromise = function (job, resolve, index) {
-        new Promise((innerResolve) => {
-            const jobPromise = job();
-            const timeOutPromise = new Promise(() =>
-                setTimeout(() => innerResolve(new Error('Promise timeout')), timeout)
-            );
-            Promise.race([jobPromise, timeOutPromise]).then(innerResolve, innerResolve);
-        })
+        let timeOutPromise = new Promise((timeOutResolve) =>
+            setTimeout(() => timeOutResolve(new Error('Promise timeout')), timeout)
+        );
+        Promise.race([job(), timeOutPromise])
             .then(res => {
-                result.push({ res, index });
-                if (result.length === initLen) {
-                    resolve(result
-                        .sort((a, b) => a.index - b.index)
-                        .map(obj => obj.res));
-                } else if (jobs.length !== 0) {
+                processJob(resolve, res, index);
+            }, res => {
+                processJob(resolve, res, index);
+            })
+            .finally(() => {
+                if (jobs.length !== 0) {
                     runOnePromise(jobs.shift(), resolve, currentJob++);
                 }
             });
@@ -49,6 +52,16 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
             runOnePromise(job, resolve, currentJob++);
         });
     });
+}
+
+function hasEmptySlot(arr) {
+    for (let i = 0; i < arr.length; i++) {
+        if (!(i in arr)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 module.exports = {
