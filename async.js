@@ -23,7 +23,7 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
 
     const processJob = function (resolve, res, index) {
         result[index] = res;
-        if (!hasEmptySlot(result)) {
+        if (countNotEmpty(result) === result.length) {
             resolve(result);
         }
     };
@@ -35,11 +35,12 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
         Promise.race([jobs[index](), timeOutPromise])
             .then(res => {
                 processJob(resolve, res, index);
+                if (countNotEmpty(result) !== result.length) {
+                    runOnePromise(resolve, ++index);
+                }
             }, res => {
                 processJob(resolve, res, index);
-            })
-            .finally(() => {
-                if (countNotEmpty(result) < jobs.length) {
+                if (countNotEmpty(result) !== result.length) {
                     runOnePromise(resolve, ++index);
                 }
             });
@@ -50,16 +51,6 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
             runOnePromise(resolve, i);
         }
     });
-}
-
-function hasEmptySlot(arr) {
-    for (let i = 0; i < arr.length; i++) {
-        if (!(i in arr)) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 function countNotEmpty(arr) {
