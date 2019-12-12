@@ -21,22 +21,26 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
 
     const result = new Array(jobs.length);
 
+    const processJob = function (resolve, res, index) {
+        result[index] = res;
+        if (!hasEmptySlot(result)) {
+            resolve(result);
+        }
+    };
+
     const runOnePromise = function (resolve, index) {
         const timeOutPromise = new Promise((timeOutResolve) =>
             setTimeout(() => timeOutResolve(new Error('Promise timeout')), timeout)
         );
         Promise.race([jobs[index](), timeOutPromise])
             .then(res => {
-                result[index] = res;
+                processJob(resolve, res, index);
             }, res => {
-                result[index] = res;
+                processJob(resolve, res, index);
             })
             .finally(() => {
                 if (index < jobs.length - 1) {
                     runOnePromise(resolve, ++index);
-                }
-                if (!hasEmptySlot(result)) {
-                    resolve(result);
                 }
             });
     };
