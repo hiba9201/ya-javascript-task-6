@@ -20,10 +20,11 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
     }
 
     const result = new Array(jobs.length);
+    let currentJob = 0;
 
     const processJob = function (resolve, res, index) {
         result[index] = res;
-        if (countNotEmpty(result) === result.length) {
+        if (countNotEmptySlots(result) === jobs.length) {
             resolve(result);
         }
     };
@@ -35,25 +36,24 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
         Promise.race([jobs[index](), timeOutPromise])
             .then(res => {
                 processJob(resolve, res, index);
-                if (countNotEmpty(result) !== result.length) {
-                    runOnePromise(resolve, ++index);
-                }
             }, res => {
                 processJob(resolve, res, index);
-                if (countNotEmpty(result) !== result.length) {
-                    runOnePromise(resolve, ++index);
+            })
+            .finally(() => {
+                if (currentJob < jobs.length) {
+                    runOnePromise(resolve, currentJob++);
                 }
             });
     };
 
     return new Promise((resolve) => {
         for (let i = 0; i < parallelNum; i++) {
-            runOnePromise(resolve, i);
+            runOnePromise(resolve, currentJob++);
         }
     });
 }
 
-function countNotEmpty(arr) {
+function countNotEmptySlots(arr) {
     let count = 0;
     for (let i = 0; i < arr.length; i++) {
         if (i in arr) {
