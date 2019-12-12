@@ -24,9 +24,6 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
 
     const processJob = function (resolve, res, index) {
         result[index] = res;
-        if (countNotEmptySlots(result) === jobs.length) {
-            resolve(result);
-        }
     };
 
     const runOnePromise = function (resolve, index) {
@@ -42,6 +39,9 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
             .finally(() => {
                 if (currentJob < jobs.length) {
                     runOnePromise(resolve, currentJob++);
+                }
+                if (countNotEmptySlots(result) === jobs.length) {
+                    resolve(result);
                 }
             });
     };
