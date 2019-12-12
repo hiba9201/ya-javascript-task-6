@@ -39,7 +39,7 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
                 processJob(resolve, res, index);
             })
             .finally(() => {
-                if (index < jobs.length - 1) {
+                if (countNotEmpty(result) < jobs.length) {
                     runOnePromise(resolve, ++index);
                 }
             });
@@ -60,6 +60,17 @@ function hasEmptySlot(arr) {
     }
 
     return false;
+}
+
+function countNotEmpty(arr) {
+    let count = 0;
+    for (let i = 0; i < arr.length; i++) {
+        if (i in arr) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 module.exports = {
